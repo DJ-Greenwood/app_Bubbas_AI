@@ -2,18 +2,51 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
+    // User profiles - users can only read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Chat sessions - users can only access their own sessions
+    match /chatSessions/{sessionId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Chat messages - users can only access messages from their own sessions
+    match /chatMessages/{messageId} {
+      // Function to check if the user owns the session this message belongs to
+      function ownsSession() {
+        let sessionId = resource.data.sessionId;
+        let sessionData = get(/databases/$(database)/documents/chatSessions/$(sessionId)).data;
+        return sessionData.userId == request.auth.uid;
+      }
+      
+      // Function to check if the user owns the session for a new message
+      function ownsSessionForNewMessage() {
+        let sessionId = request.resource.data.sessionId;
+        let sessionData = get(/databases/$(database)/documents/chatSessions/$(sessionId)).data;
+        return sessionData.userId == request.auth.uid;
+      }
+      
+      allow read: if request.auth != null && ownsSession();
+      allow create: if request.auth != null && ownsSessionForNewMessage();
+      allow update, delete: if request.auth != null && ownsSession();
+      
+      // Validate message structure
+      allow write: if request.resource.data.keys().hasAll(['sessionId', 'content', 'role', 'timestamp']) &&
+                     request.resource.data.role in ['user', 'assistant'];
+    }
+    
+    // User preferences - users can only access their own preferences
+    match /userPreferences/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Default deny all other access
     match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2025, 5, 1);
+      allow read, write: if false;
     }
   }
 }

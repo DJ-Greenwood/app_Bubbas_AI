@@ -1,12 +1,47 @@
 rules_version = '2';
 
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
+    // Default deny
     match /{allPaths=**} {
       allow read, write: if false;
+    }
+    
+    // User profiles - users can upload and access their own profile images
+    match /profileImages/{userId}/{fileName} {
+      allow read: if true; // Profile images can be publicly viewed
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // User voice recordings - private to each user
+    match /voiceData/{userId}/{fileName} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Optional: validate file size for voice recordings
+      allow write: if request.resource.size < 5 * 1024 * 1024; // 5MB limit
+    }
+    
+    // Chat attachments - user can access attachments for their own chat sessions
+    match /chatAttachments/{sessionId}/{fileName} {
+      // Check if user owns the session
+      function ownsSession() {
+        let sessionData = firestore.get(/databases/(default)/documents/chatSessions/$(sessionId)).data;
+        return sessionData != null && sessionData.userId == request.auth.uid;
+      }
+      
+      allow read, write: if request.auth != null && ownsSession();
+      
+      // Validate file size and type
+      allow write: if request.resource.size < 10 * 1024 * 1024 // 10MB limit
+                      && (request.resource.contentType.matches('image/.*') 
+                          || request.resource.contentType.matches('audio/.*')
+                          || request.resource.contentType.matches('application/pdf'));
+    }
+    
+    // Public assets - app-wide resources that anyone can view
+    match /public/{fileName} {
+      allow read: if true;
+      allow write: if false; // Only admins can upload via Firebase console or CI/CD
     }
   }
 }

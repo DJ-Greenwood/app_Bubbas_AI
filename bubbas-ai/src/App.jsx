@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import MainLayout from './layouts/MainLayout';
 import Home from './pages/Home';
 import Auth from './pages/Auth';
+import Chat from './pages/Chat';
 import { AppProvider, useAppContext } from './context/AppContext';
 
 // Protected route component
@@ -28,6 +29,16 @@ function AppRoutes() {
           <Route path="/" element={
             <ProtectedRoute>
               <Home />
+            </ProtectedRoute>
+          } />
+          <Route path="/chat" element={
+            <ProtectedRoute>
+              <Chat />
+            </ProtectedRoute>
+          } />
+          <Route path="/chat/:sessionId" element={
+            <ProtectedRoute>
+              <Chat />
             </ProtectedRoute>
           } />
           <Route path="/auth" element={user ? <Navigate to="/" /> : <Auth />} />

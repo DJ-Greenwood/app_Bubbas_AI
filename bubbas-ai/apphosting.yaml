@@ -1,23 +1,32 @@
 # Settings for Backend (on Cloud Run).
 # See https://firebase.google.com/docs/app-hosting/configure#cloud-run
 runConfig:
-  minInstances: 0
-  # maxInstances: 100
-  # concurrency: 80
-  # cpu: 1
-  # memoryMiB: 512
+  minInstances: 0  # Scales to zero when not in use (cost-efficient)
+  maxInstances: 10  # Maximum number of instances for your Bubbas.ai app
+  concurrency: 80  # Number of simultaneous requests per instance
+  cpu: 1  # 1 CPU core per instance
+  memoryMiB: 1024  # 1GB memory per instance
 
-# Environment variables and secrets.
-# env:
-  # Configure environment variables.
-  # See https://firebase.google.com/docs/app-hosting/configure#user-defined-environment
-  # - variable: MESSAGE
-  #   value: Hello world!
-  #   availability:
-  #     - BUILD
-  #     - RUNTIME
-
-  # Grant access to secrets in Cloud Secret Manager.
-  # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
-  # - variable: MY_SECRET
-  #   secret: mySecretRef
+# Environment variables and secrets for Bubbas.ai
+env:
+  # Configure environment variables
+  - variable: NODE_ENV
+    value: production
+    availability:
+      - BUILD
+      - RUNTIME
+      
+  - variable: LOG_LEVEL
+    value: info
+    availability:
+      - RUNTIME
+      
+  # Gemini API Key - stored as a secret
+  - variable: GEMINI_API_KEY
+    secret: gemini-api-key
+    
+  # Firebase config - stored as secrets
+  - variable: FIREBASE_DATABASE_URL
+    value: https://bubbas-ai-10c3f-default-rtdb.firebaseio.com
+    availability:
+      - RUNTIME

@@ -1,7 +1,62 @@
 {
-  /* Visit https://firebase.google.com/docs/database/security to learn more about security rules. */
   "rules": {
     ".read": false,
-    ".write": false
+    ".write": false,
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        "profile": {
+          ".validate": "newData.hasChildren(['displayName', 'email'])"
+        },
+        "settings": {
+          ".validate": "newData.hasChildren(['theme'])"
+        }
+      }
+    },
+    "chatSessions": {
+      ".indexOn": ["userId"],
+      ".read": "data.child('userId').val() === auth.uid",
+      ".validate": "newData.hasChildren(['userId', 'name', 'createdAt', 'updatedAt'])",
+      "createdAt": {
+        ".validate": "newData.isNumber()"
+      },
+      "updatedAt": {
+        ".validate": "newData.isNumber()"
+      }
+    },
+    "chatMessages": {
+      ".indexOn": ["sessionId"],
+      "$messageId": {
+        "sessionId": {
+          ".validate": "newData.isString()"
+        },
+        "content": {
+          ".validate": "newData.isString()"
+        },
+        "role": {
+          ".validate": "newData.isString()"
+        },
+        "timestamp": {
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+    "userPreferences": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+        "voiceSettings": {
+          "voiceName": { ".validate": "newData.isString()" },
+          "rate": { ".validate": "newData.isNumber() && newData.val() >= 0.5 && newData.val() <= 2.0" },
+          "pitch": { ".validate": "newData.isNumber() && newData.val() >= 0.5 && newData.val() <= 2.0" },
+          "volume": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1.0" }
+        },
+        "aiSettings": {
+          "temperature": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1.0" },
+          "modelName": { ".validate": "newData.isString()" },
+          "autoSpeak": { ".validate": "newData.isBoolean()" }
+        }
+      }
+    }
   }
 }
